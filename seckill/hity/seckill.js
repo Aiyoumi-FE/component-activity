@@ -157,7 +157,6 @@ class Seckill {
         if (typeof style === 'string' && style.trim()) {
             let styleElem = document.createElement('style')
             styleElem.innerHTML = style
-            console.log('style', styleElem)
             document.querySelector('head').append(styleElem)
         }
     }
@@ -238,13 +237,13 @@ class Seckill {
 
             // 挂载
             this._mount(rst.template, this.el, this.pClass)
-
+            delete rst.template
             // 每次执行的回调
-            this.perCb && this.perCb(rst.timeObj)
+            this.perCb && this.perCb(rst)
 
             // 开始秒杀，执行回调
             if (this._isIng() && this.beginSeckillCb && !this._beginSeckillCbDone) {
-                this.beginSeckillCb && this.beginSeckillCb(rst.timeObj)
+                this.beginSeckillCb && this.beginSeckillCb(rst)
                 this._beginSeckillCbDone = true
             }
 
@@ -253,7 +252,7 @@ class Seckill {
 
             // 结束时，执行结束回调
             if (this._isAfter()) {
-                this.endSeckillCb && this.endSeckillCb(rst.timeObj)
+                this.endSeckillCb && this.endSeckillCb(rst)
             } else {
                 this._moment = setTimeout(this._start.bind(this), this.during)
             }
@@ -289,7 +288,7 @@ class Seckill {
 
         return {
             template,
-            timeObj,
+            time: timeObj,
             state: {
                 isIng: this._isIng(),
                 isBefore: this._isBefore(),
@@ -310,7 +309,7 @@ class Seckill {
         let timeObj = {}
         // 计算剩余项目的结果
         restOptions.forEach((item, index) => {
-            let oriIndex = index
+            let oriIndex = 0
             timeOptions.some((e, i) => {
                 oriIndex = i
                 return e.name == item.name
@@ -321,7 +320,10 @@ class Seckill {
                     return x * y
                 })
             // 如果是年或者月，去除周的影响
-            if ((item.key === 'Y' || item.key === 'M')) {
+            if (item.key === 'Y') {
+                sum = sum / (7 * 30)
+            }
+            if (item.key === 'M') {
                 sum = sum / 7
             }
             if (item.key === '_100ms') {

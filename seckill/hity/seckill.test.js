@@ -65,7 +65,7 @@ const timeOptions = [{
     mult: 1
 }]
 
-console.log("seckillObj", seckillObj._isValidClientTime)
+const nowTime = new Date().getTime()
 
 describe('expect',function(){
     // 格式化日期
@@ -102,27 +102,26 @@ describe('expect',function(){
         }, Util))).to.not.be.ok;
     });
 
-
     // 秒杀的三个状态
     it('state_isBefore',function(){
         expect(seckillObj._isBefore.apply(Object.assign({
             gap: 100,
-            startTime: Util._formatDate('2018-03-27 12:12:12')
+            startTime: nowTime + 1000
         }, Util))).to.be.ok;
     });
 
     it('state_isIng',function(){
         expect(seckillObj._isIng.apply(Object.assign({
             gap: 100,
-            startTime: Util._formatDate('2018-03-25 12:12:12'),
-            endTime: Util._formatDate('2018-03-27 12:12:12')
+            startTime: nowTime - 1000,
+            endTime: nowTime + 1000
         }, Util))).to.be.ok;
     });
 
     it('state_isAfter',function(){
         expect(seckillObj._isAfter.apply(Object.assign({
             gap: 100,
-            endTime: Util._formatDate('2018-03-25 12:12:12')
+            endTime: nowTime - 1000
         }, Util))).to.be.ok;
     });
 
@@ -130,7 +129,7 @@ describe('expect',function(){
     it('isValidClientTime_serverTime_valid',function(){
         expect(seckillObj._isValidClientTime.apply(Object.assign({
             _isGetServerTimeValid: true,
-            _preClientTime: new Date() - 100,
+            _preClientTime: nowTime - 100,
             threshold: 10 * 1000
         }, Util))).to.be.ok;
     });
@@ -138,7 +137,7 @@ describe('expect',function(){
     it('isValidClientTime_serverTime_valid_outofthreshold',function(){
         expect(seckillObj._isValidClientTime.apply(Object.assign({
             _isGetServerTimeValid: true,
-            _preClientTime: new Date() - 100000000,
+            _preClientTime: nowTime - 100000000,
             threshold: 10 * 1000
         }, Util))).to.be.not.ok;
     });
@@ -146,7 +145,7 @@ describe('expect',function(){
     it('isValidClientTime_serverTime_faild',function(){
         expect(seckillObj._isValidClientTime.apply(Object.assign({
             _isGetServerTimeValid: false,
-            _preClientTime: new Date() - 100000000,
+            _preClientTime: nowTime - 100000000,
             threshold: 10 * 1000
         }, Util))).to.be.ok;
     });
