@@ -1,7 +1,7 @@
 /* 秒杀组件
-    功能：根据给定的模版，编译生成对应的Dom结构 or 串；
-        根据服务器时间与客户端时间差，来获取实时的服务器时间；
-        对客户端时间进行校验等
+    功能：a、服务端时间不需要多次请求
+        b、客户端时间校准
+        c、模版自定义（当前模版无法实现UI需求时，可使用perCb进行定制）
     参数：
         style: 样式，会提供默认样式；
         template: 倒计时渲染的模版，其中包含关键子：
@@ -25,7 +25,7 @@
         *gap[与getServerTime必有其一]: 服务端与客户端时间差 gap = frontTime - serverTime；
         *startTime[必须]: 秒杀开始时间；
         *endTime［必须］：秒杀结束时间；
-        during: UI渲染频率，单位ms; 必须大于100ms；
+        during: UI渲染频率，单位ms; 默认为100ms；
         perCb: 倒计时中的回调，dom挂载成功后，执行perCallback，其参数为Object，{ year, month, week, day, hour, minute, second, _100ms}
         beginSeckillCb: 秒杀开始时的回调；［参数同perCb］
         endSeckillCb: 秒杀结束时的回调。[无参数]
@@ -38,8 +38,7 @@ const defaultTemplate = [
     '$isIng{<span>进行中</span>}',
     '$isAfter{<span>已结束</span>}',
     '$isIng||$isBefore{<div>',
-    '   <span class="time-block">$M</span>',
-    '   月,',
+    '   $D 天 ， ',
     '   <span class="time-block">$h</span>',
     '   <span class="time-block">$h</span>',
     '   :',
@@ -48,6 +47,8 @@ const defaultTemplate = [
     '   :',
     '   <span class="time-block">$s</span>',
     '   <span class="time-block">$s</span>',
+    '    ',
+    '   <span class="time-block ms-block">$_100ms</span>',
     '</div>}'
 ].join('')
 
@@ -85,8 +86,7 @@ const timeOptions = [{
     mult: 1
 }]
 const defaultThreshold = 10 * 1000
-const defaultDuring = 1000
-const minDuring = 100
+const defaultDuring = 100
 
 class Seckill {
     constructor(options) {
@@ -102,11 +102,6 @@ class Seckill {
             _moment: null, // 倒计时返回
             _beginSeckillCbDone: false // 开始秒杀回调是否执行
         })
-
-        // 参数校验
-        // if (this._checkAFormatData()) {
-        //     this.init()
-        // }
     }
 
     init() {
@@ -129,8 +124,8 @@ class Seckill {
 
     // 参数校验
     _checkAFormatData() {
-        if (this.during < minDuring) {
-            this.during = minDuring
+        if (this.during < defaultDuring) {
+            this.during = defaultDuring
         }
 
         if (!(typeof this.getServerTime === 'function' || this.gap)) {
