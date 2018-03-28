@@ -1,4 +1,6 @@
 /* 秒杀组件
+    author: hity
+    date: 2018-03-27
     功能：a、服务端时间不需要多次请求
         b、客户端时间校准
         c、模版自定义（当前模版无法实现UI需求时，可使用perCb进行定制）
@@ -32,7 +34,7 @@
 
 *************************/
 
-const defaultStyle = '#seckill{width: 80%; margin: auto;} #seckill .time-block {display: inline-block; width: 14px; height: 20px; text-align: center; line-height: 20px; background-color: rgba(0, 0, 0, 0.6); color: #fff; margin: 0 1px;}#seckill .ms-block{background-color:green}'
+const defaultStyle = '#seckill{width: 100%; margin: auto;} #seckill .time-block {display: inline-block; width: 14px; height: 20px; text-align: center; line-height: 20px; background-color: rgba(0, 0, 0, 0.6); color: #fff; margin: 0 1px;}#seckill .ms-block{background-color:green}'
 const defaultTemplate = [
     '$isBefore{<span>即将开始</span>}',
     '$isIng{<span>进行中</span>}',
@@ -103,7 +105,9 @@ class Seckill {
             _beginSeckillCbDone: false // 开始秒杀回调是否执行
         })
     }
-
+    destory() {
+        clearTimeout(this._moment)
+    }
     init() {
         if (!this._checkAFormatData(this)) {
             return
@@ -263,7 +267,6 @@ class Seckill {
             pElem.className = !pClass ? '' : pClass
             el.append(pElem)
         }
-
         pElem.innerHTML = template
     }
 
