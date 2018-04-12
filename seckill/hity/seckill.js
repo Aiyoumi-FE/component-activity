@@ -22,7 +22,7 @@
             如果包含$W，则日不大于7！
         el: 挂载点（默认为body）;
         pClass: 自定义秒杀组件容器的类;
-        threshold: 检验客户端时间是否异常的阈值，单位ms; 必须大于during；默认为30s
+        threshold: 检验客户端时间是否异常的阈值，单位ms; 必须大于during；默认为10s
         *getServerTime[与gap必有其一]: 获取服务端时间的函数，可校验客户端时间变化；要求其返回promise对象，resolve数据的结构为{success, serverTime};
         *gap[与getServerTime必有其一]: 服务端与客户端时间差 gap = frontTime - serverTime；
         *startTime[必须]: 秒杀开始时间；
@@ -30,7 +30,7 @@
         during: UI渲染频率，单位ms; 默认为100ms；
         perCb: 倒计时中的回调，dom挂载成功后，执行perCallback，其参数为Object，{ year, month, week, day, hour, minute, second, _100ms}
         beginSeckillCb: 秒杀开始时的回调；［参数同perCb］
-        endSeckillCb: 秒杀结束时的回调。[无参数]
+        endSeckillCb: 秒杀结束时的回调。[参数同perCb]
 
 *************************/
 
