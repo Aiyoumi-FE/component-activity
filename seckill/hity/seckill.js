@@ -155,7 +155,7 @@ class Seckill {
         if (typeof style === 'string' && style.trim()) {
             let styleElem = document.createElement('style')
             styleElem.innerHTML = style
-            document.querySelector('head').append(styleElem)
+            document.querySelector('head').appendChild(styleElem)
         }
     }
 
@@ -265,7 +265,7 @@ class Seckill {
             pElem = document.createElement('div')
             pElem.id = 'seckill'
             pElem.className = !pClass ? '' : pClass
-            el.append(pElem)
+            el.appendChild(pElem)
         }
         pElem.innerHTML = template
     }
@@ -366,7 +366,7 @@ class Seckill {
 
             // 数值字符长度不够，用0补充
             if (keyArray && keyArray.length) {
-                value = value.padStart(keyArray.length, '0')
+                value = this._padStart(value, '0', keyArray.length)
             }
 
             // 将对应数值填坑
@@ -383,6 +383,23 @@ class Seckill {
             })
         })
         return template
+    }
+
+    _padStart(value, ch, len) {
+        if (typeof ch !== 'string' || typeof value !== 'string' || typeof len !== 'number') {
+            console.log('输入类型错误')
+            return
+        }
+
+        if (ch.length !== 1) {
+            console.log('输入字符长度错误')
+            return
+        }
+
+        while (value.length < len) {
+            value = ch + value
+        }
+        return value
     }
 }
 
