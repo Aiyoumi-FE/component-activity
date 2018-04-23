@@ -3,8 +3,10 @@
         a、受UI控制，实现有限级的数据展现；
         b、请求数据缓存，加速数据返回；
         c、增加数据请求的时序控制；
-        d、支持级联；
-        e、支持列表单列dom自定义；
+        d、交互touchmove的有效性控制；
+        e、限頻：UI更新100ms/touchmove，数据更新1000ms/touchmove，touchend时，立即开启数据请求；
+        f、支持级联；
+        g、支持列表单列dom自定义；
     参数：
         style: 样式，会提供默认样式；
         template: dom;{{value}}其中的value为getList返回的list中item的属性;
@@ -152,13 +154,13 @@ class Picker {
     // 处理单个面板的数据获取及编译、挂载
     _handleOnePanel(index, mySequenceNum) {
         this._getData(index, mySequenceNum).then(({list, isDone}) => {
-            if (isDone) {
+            if (list && list.length > 0) {
+                this._handleData(list, index, mySequenceNum)
+            } else {
                 this._currSequenceNum[index] = mySequenceNum
                 this._touchIndex = -1
                 this.defaultTarget = []
-                this.done && this.done(this._target)
-            } else if (list && list.length > 0) {
-                this._handleData(list, index, mySequenceNum)
+                isDone && this.done && this.done(this._target)
             }
         })
     }

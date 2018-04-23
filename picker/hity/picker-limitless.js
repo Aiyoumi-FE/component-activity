@@ -7,7 +7,7 @@
     参数：
         style: 样式，会提供默认样式；
         navLiTemplate: 模版；{{value}}其中的value为选中的item的属性，item与list中的item属性相同;
-        defaultPanelLiTemplate: 模版；{{value}}其中的value为getList返回的list中item的属性;
+        panelLiTemplate: 模版；{{value}}其中的value为getList返回的list中item的属性;
         el: 挂载点（默认为body）;
         pClass: 自定义秒杀组件容器的类;
         defaultTarget: 默认值；与target的结构相同
