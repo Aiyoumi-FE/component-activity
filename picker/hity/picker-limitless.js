@@ -1,10 +1,13 @@
-/* 秒杀组件
-    功能：a、服务端时间不需要多次请求
-        b、客户端时间校准
-        c、模版自定义（当前模版无法实现UI需求时，可使用perCb进行定制）
+/* picker组件
+    功能：
+        a、可实现无限级数据的展现；
+        b、请求数据缓存，加速数据返回；
+        c、增加数据请求的时序控制；
+        d、支持列表单列dom自定义；
     参数：
         style: 样式，会提供默认样式；
-        template: dom;{{value}}其中的value为getList返回的list中item的属性;
+        navLiTemplate: 模版；{{value}}其中的value为选中的item的属性，item与list中的item属性相同;
+        defaultPanelLiTemplate: 模版；{{value}}其中的value为getList返回的list中item的属性;
         el: 挂载点（默认为body）;
         pClass: 自定义秒杀组件容器的类;
         defaultTarget: 默认值；与target的结构相同
@@ -196,9 +199,6 @@ class Picker {
     // 对数据进行编译、挂载、级联判断等处理
     _handleData(list, index, mySequenceNum) {
         this._list[index] = list
-        // if (!this.defaultTarget || !this.defaultTarget.length) {
-        //     this._target[index] = list[0]
-        // }
 
         // 挂载
         if (!this._pElem) {

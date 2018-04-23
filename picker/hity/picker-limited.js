@@ -1,4 +1,10 @@
 /* picker组件
+    功能：
+        a、受UI控制，实现有限级的数据展现；
+        b、请求数据缓存，加速数据返回；
+        c、增加数据请求的时序控制；
+        d、支持级联；
+        e、支持列表单列dom自定义；
     参数：
         style: 样式，会提供默认样式；
         template: dom;{{value}}其中的value为getList返回的list中item的属性;
@@ -84,7 +90,7 @@ class Picker {
         if (typeof style === 'string' && style.trim()) {
             let styleElem = document.createElement('style')
             styleElem.innerHTML = style
-            document.querySelector('head').append(styleElem)
+            document.querySelector('head').appendChild(styleElem)
         }
     }
 
@@ -95,7 +101,7 @@ class Picker {
         if (!pElem) {
             pElem = document.createElement('div')
             pElem.className = 'picker ' + (!pClass ? '' : pClass)
-            el.append(pElem)
+            el.appendChild(pElem)
             pElem.innerHTML = '<div class="target-line"></div>'
             this._pElem = pElem
         }
@@ -105,7 +111,7 @@ class Picker {
             ulElem = document.createElement('ul')
             ulElem.className = 'panel-' + index
             ulElem.innerHTML = template
-            pElem.append(ulElem)
+            pElem.appendChild(ulElem)
             // 新建ul列表时，注册交互事件
             this._registerUlEvent(ulElem, index)
         } else {
@@ -130,15 +136,17 @@ class Picker {
         }).join('')
     }
 
-    // 处理整个面板
+    // 处理整个面板 picker进行中时，仅平级或更高级操作可生效；（防止实效数据产生）
+    // 上一touch还在进行中，并且当前触发的面板level大于上一面板level时，且级联时，不触发操作
     _handleWholePanel(index) {
         if (this._touchIndex != -1 && index > this._touchIndex && this.isCascade) {
-            return
+            return false
         }
         this._touchIndex = index
         let latestSequenceNum = this._latestSequenceNum++
 
         this._handleOnePanel(index, latestSequenceNum)
+        return true
     }
 
     // 处理单个面板的数据获取及编译、挂载
