@@ -114,8 +114,17 @@ class Picker {
             ulElem.className = 'panel-' + index
             ulElem.innerHTML = template
             pElem.appendChild(ulElem)
+
+            let uiInfo = {
+                preTouchY: 0,
+                currTouchY: 0,
+                lineHeight: ulElem.querySelector('li').offsetHeight,
+                translateY: 0
+            }
+
+            this._renderInitUi(uiInfo, ulElem, index)
             // 新建ul列表时，注册交互事件
-            this._registerUlEvent(ulElem, index)
+            this._registerUlEvent(uiInfo, ulElem, index)
         } else {
             ulElem.innerHTML = template
         }
@@ -207,8 +216,20 @@ class Picker {
         }
     }
 
+    // 初始化时，渲染UI
+    _renderInitUi(uiInfo, ulElem, index) {
+        let targetIndex = 0
+        this._list[index].forEach((item, tIndex) => {
+            if (Object.keys(item).every(key => item[key] === this._target[index][key])) {
+                targetIndex = tIndex
+            }
+        })
+        uiInfo.translateY = -1 * targetIndex * uiInfo.lineHeight
+        ulElem.style.transform = 'translate(0, ' + uiInfo.translateY + 'px)'
+    }
+
     // touch时，移动面板UI渲染
-    _renderTouchUi(touchInfo, ulElem, index) {
+    _renderTouchUi(uiInfo, ulElem, index) {
         this._pElem.querySelectorAll('ul').forEach((item, tIndex) => {
             if (tIndex > index) {
                 item.style.transform = 'translate(0, 0)'
@@ -219,7 +240,7 @@ class Picker {
             currTouchY,
             lineHeight,
             translateY
-        } = touchInfo
+        } = uiInfo
 
         let maxY = 0
         let minY = -1 * (this._list[index].length - 1) * lineHeight
@@ -248,31 +269,22 @@ class Picker {
             translateY = maxY
         }
         ulElem.style.transform = 'translate(0, ' + translateY + 'px)'
+        uiInfo.translateY = translateY
         this._target[index] = this._list[index][Math.abs((translateY / lineHeight))]
-        touchInfo.translateY = translateY
     }
 
     // 注册事件
-    _registerUlEvent(ulElem, index) {
-        let lineHeight = ulElem.querySelector('li').offsetHeight
-
-        let touchInfo = {
-            preTouchY: 0,
-            currTouchY: 0,
-            lineHeight: lineHeight,
-            translateY: 0
-        }
-
+    _registerUlEvent(uiInfo, ulElem, index) {
         let renderTouchUi = throttle(this._renderTouchUi, 100, this)
         let handleWholePanel = throttleTail(this._handleWholePanel, 500, this)
 
         ulElem.addEventListener('touchstart', (event) => {
-            touchInfo.preTouchY = event.touches[0].clientY
+            uiInfo.preTouchY = event.touches[0].clientY
         })
 
         ulElem.addEventListener('touchmove', (event) => {
-            touchInfo.currTouchY = event.touches[0].clientY
-            renderTouchUi(touchInfo, ulElem, index)
+            uiInfo.currTouchY = event.touches[0].clientY
+            renderTouchUi(uiInfo, ulElem, index)
             handleWholePanel(index + 1)
         }, false)
 
