@@ -24,14 +24,14 @@
         done: 回调函数，当picker整体选择完毕以后，调用该函数；返回选中的target
 *************************/
 /* global alert */
-import { throttle, throttleTail } from './utils'
+import { throttle } from './utils'
 
 const defaultStyle = [
     '.picker * {margin: 0; padding: 0;}',
-    '.picker {position:fixed; bottom:10%; left: 0; width: 98%; padding: 0 1%; height: 30%; display: flex; overflow:hidden;}',
+    '.picker {z-index: 10; position:fixed; bottom:10%; left: 0; width: 98%; padding: 0 1%; height: 30%; display: flex; overflow:hidden;}',
     '.picker ul{position: relative; height:auto; top: 50%; flex: 1 1; list-style: none;}',
     'li {line-height: 30px; overflow: hidden; width: 100%; height: 30px; line-height: 30px; text-align: center;}',
-    '.target-line {width: 100%; height: 30px; position: absolute; top:50%; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd;}'
+    '.target-line {z-index: -1; width: 100%; height: 30px; position: absolute; top:50%; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd;}'
 ].join('')
 
 const defaultLiTemplate = '<li key="{{id}}">{{value}}</li>'
@@ -51,7 +51,9 @@ class Picker {
             _currSequenceNum: [], // 当前插入面板的数据为第n个数据请求，用于处理异步请求时序
             _latestSequenceNum: 0, // 最新请求的序号，用于处理异步请求时序
             _requestRstBuff: new Map(), // 缓存数据请求的结果，加速数据返回,map结构
-            _touchIndex: -1 // 标记当前数据请求通过那个面板触发，用于处理异步请求时序 如果有级联，当高级面板触发的请求未结束时，不能继续操作面板
+            _touchIndex: -1, // 标记当前数据请求通过那个面板触发，用于处理异步请求时序 如果有级联，当高级面板触发的请求未结束时，不能继续操作面板
+            _translateY: [],
+            _lineHeight: 0
         })
     }
 
@@ -106,6 +108,9 @@ class Picker {
             el.appendChild(pElem)
             pElem.innerHTML = '<div class="target-line"></div>'
             this._pElem = pElem
+            this._pElem.addEventListener('touchmove', (event) => {
+                // alert('event' + event.target.nodeType)
+            }, false)
         }
 
         let ulElem = this._pElem.querySelector('.panel-' + index)
@@ -115,16 +120,18 @@ class Picker {
             ulElem.innerHTML = template
             pElem.appendChild(ulElem)
 
-            let uiInfo = {
-                preTouchY: 0,
-                currTouchY: 0,
-                lineHeight: ulElem.querySelector('li').offsetHeight,
-                translateY: 0
+            // 取得行高
+            if (!this._lineHeight) {
+                this._lineHeight = ulElem.querySelector('li').offsetHeight
             }
 
-            this._renderInitUi(uiInfo, ulElem, index)
+            // 根据默认值，进行ui初始化
+            if (this.defaultTarget && this.defaultTarget.length) {
+                this._renderInitUi(ulElem, index)
+            }
+
             // 新建ul列表时，注册交互事件
-            this._registerUlEvent(uiInfo, ulElem, index)
+            this._registerUlEvent(ulElem, index)
         } else {
             ulElem.innerHTML = template
         }
@@ -147,13 +154,8 @@ class Picker {
         }).join('')
     }
 
-    // 处理整个面板 picker进行中时，仅平级或更高级操作可生效；（防止实效数据产生）
-    // 上一touch还在进行中，并且当前触发的面板level大于上一面板level时，且级联时，不触发操作
+    // 处理整个面板
     _handleWholePanel(index) {
-        if (this._touchIndex != -1 && index > this._touchIndex && this.isCascade) {
-            return false
-        }
-        this._touchIndex = index
         let latestSequenceNum = this._latestSequenceNum++
 
         this._handleOnePanel(index, latestSequenceNum)
@@ -166,9 +168,7 @@ class Picker {
             if (list && list.length > 0) {
                 this._handleData(list, index, mySequenceNum)
             } else {
-                this._currSequenceNum[index] = mySequenceNum
-                this._touchIndex = -1
-                this.defaultTarget = []
+                this._resetState(index, mySequenceNum)
                 isDone && this.done && this.done(this._target)
             }
         })
@@ -196,6 +196,11 @@ class Picker {
             }
         })
     }
+    _resetState(index, mySequenceNum) {
+        this._currSequenceNum[index] = mySequenceNum
+        this._touchIndex = -1
+        this.defaultTarget = []
+    }
     // 对数据进行编译、挂载、级联判断等处理
     _handleData(list, index, mySequenceNum) {
         this._list[index] = list
@@ -213,43 +218,43 @@ class Picker {
         this._currSequenceNum[index] = mySequenceNum
         if (this.isCascade) {
             this._handleOnePanel(index + 1, mySequenceNum)
+        } else {
+            this._resetState(index, mySequenceNum)
         }
     }
 
     // 初始化时，渲染UI
-    _renderInitUi(uiInfo, ulElem, index) {
+    _renderInitUi(ulElem, index) {
         let targetIndex = 0
         this._list[index].forEach((item, tIndex) => {
             if (Object.keys(item).every(key => item[key] === this._target[index][key])) {
                 targetIndex = tIndex
             }
         })
-        uiInfo.translateY = -1 * targetIndex * uiInfo.lineHeight
-        ulElem.style.transform = 'translate(0, ' + uiInfo.translateY + 'px)'
+        this._translateY[index] = -1 * targetIndex * this._lineHeight
+        ulElem.style.transform = 'translate(0, ' + this._translateY[index] + 'px)'
     }
 
-    // touch时，移动面板UI渲染
-    _renderTouchUi(uiInfo, ulElem, index) {
+    // touch时，面板的UI渲染
+    _renderTouchUi(touchInfo, ulElem, index, touchType) {
         this._pElem.querySelectorAll('ul').forEach((item, tIndex) => {
             if (tIndex > index) {
                 item.style.transform = 'translate(0, 0)'
+                this._translateY[tIndex] = 0
             }
         })
         let {
             preTouchY,
-            currTouchY,
-            lineHeight,
-            translateY
-        } = uiInfo
+            currTouchY
+        } = touchInfo
+        let lineHeight = this._lineHeight
+        let translateY = this._translateY[index]
 
         let maxY = 0
         let minY = -1 * (this._list[index].length - 1) * lineHeight
 
         let touchGap = (preTouchY - currTouchY)
-        let yCount = touchGap / lineHeight
-        yCount = (touchGap / lineHeight).toFixed(0)
-
-        let yGap = -1 * yCount * lineHeight
+        let yGap = -1 * touchGap / 2
 
         // 到达底部，做上拉操作
         if (translateY == minY && (translateY + yGap) < minY) {
@@ -263,34 +268,67 @@ class Picker {
 
         if ((translateY + yGap) >= minY && (translateY + yGap) <= maxY) {
             translateY += yGap
+            // touchend时，校准位置
+            if (touchType === 'end') {
+                translateY = (translateY / lineHeight).toFixed(0) * lineHeight
+            }
         } else if ((translateY + yGap) < minY) {
             translateY = minY
         } else if ((translateY + yGap) > maxY) {
             translateY = maxY
         }
         ulElem.style.transform = 'translate(0, ' + translateY + 'px)'
-        uiInfo.translateY = translateY
-        this._target[index] = this._list[index][Math.abs((translateY / lineHeight))]
+        this._translateY[index] = translateY
+        this._target[index] = this._list[index][Math.floor(Math.abs(translateY / lineHeight))]
     }
 
     // 注册事件
-    _registerUlEvent(uiInfo, ulElem, index) {
-        let renderTouchUi = throttle(this._renderTouchUi, 100, this)
-        let handleWholePanel = throttleTail(this._handleWholePanel, 500, this)
-
+    _registerUlEvent(ulElem, index) {
+        let renderTouchUi = throttle(this._renderTouchUi, 50, this)
+        let handleWholePanel = throttle(this._handleWholePanel, 500, this)
+        let touchInfo = {
+            preTouchY: 0,
+            currTouchY: 0
+        }
         ulElem.addEventListener('touchstart', (event) => {
-            uiInfo.preTouchY = event.touches[0].clientY
+            event.preventDefault()
+            event.stopPropagation()
+            touchInfo.preTouchY = event.touches[0].clientY
         })
 
         ulElem.addEventListener('touchmove', (event) => {
-            uiInfo.currTouchY = event.touches[0].clientY
-            renderTouchUi(uiInfo, ulElem, index)
-            handleWholePanel(index + 1)
+            event.preventDefault()
+            event.stopPropagation()
+            if (!(this._touchIndex != -1 && (index + 1) > this._touchIndex && this.isCascade)) {
+                this._touchIndex = index + 1
+                touchInfo.currTouchY = event.touches[0].clientY
+                renderTouchUi(touchInfo, ulElem, index, 'move')
+                handleWholePanel(index + 1)
+            }
         }, false)
 
         ulElem.addEventListener('touchend', (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            this._renderTouchUi(touchInfo, ulElem, index, 'end')
             this._handleWholePanel(index + 1)
         }, false)
+    }
+    // 限流
+    _throttle(fn, delay, ctx) {
+        let isAvail = true
+        let movement = null
+        return function() {
+            let args = arguments
+            if (isAvail) {
+                fn.apply(ctx, args)
+                isAvail = false
+                clearTimeout(movement)
+                movement = setTimeout(() => {
+                    isAvail = true
+                }, delay)
+            }
+        }
     }
 }
 
