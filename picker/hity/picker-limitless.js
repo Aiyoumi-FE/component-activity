@@ -23,11 +23,11 @@
 
 const defaultStyle = [
     '.picker * {margin: 0; padding: 0;}',
-    '.picker {position:relative; width: 100%; height: 50%; background: #fff;}',
+    '.picker {position:relative; width: 100%; height: 100%; background: #fff;}',
     '.picker .nav{position: relative; height:30px; line-height:30px; list-style: none; display: flex; border-bottom: 1px solid #e4e4e4; padding: 0 12px;}',
     '.picker .nav li{padding-right: 10px; overflow: scroll;}',
     '.picker .panel-frame {position: relative; width: 100%; height: 100%; transition: transform 500ms;}',
-    '.panel-frame ul {position:absolute; top: 5px; list-style: none; width:100%; height: 82%; line-height: 24px; padding: 0 12px; overflow: scroll;}',
+    '.panel-frame ul {position:absolute; top: 5px; list-style: none; width:100%; height: 80%; line-height: 24px; padding: 0 12px; overflow: scroll;}',
     '.panel-frame .active {color: red;}',
     '.nav .active {border-bottom: 1px solid red;}'
 ].join('')
@@ -136,7 +136,7 @@ class Picker {
     }
 
     // 编译模版，填充值
-    _compile(liTemplate, list) {
+    _compile(liTemplate, list, panelIndex) {
         let reg = new RegExp(/(\{\{([^\}]+)\}\})/g)
         return list.map((item, index) => {
             let template = liTemplate
@@ -148,27 +148,35 @@ class Picker {
                 }
                 template = template.replace(RegExp.$1, value)
             }
-            return template.replace('<li', '<li index="' + index + '"')
+            if (this._deepEqual(item, this.defaultTarget[panelIndex])) {
+                template = template.replace('<li', '<li class="active" ')
+            }
+            return template.replace('<li', '<li index="' + index + '" ')
         }).join('')
     }
 
+    _reset(index, mySequenceNum) {
+        this.defaultTarget = []
+        this._currSequenceNum[index] = mySequenceNum
+        this._finished = true
+    }
     // 处理单个面板的数据获取及编译、挂载
     _handleOnePanel(index) {
         let mySequenceNum = this._latestSequenceNum[index]++
         this._finished = false
         this._getData(index, mySequenceNum).then(({list, isDone}) => {
-            if (isDone) {
-                this.defaultTarget = []
-                this._currSequenceNum[index] = mySequenceNum
-                this._finished = true
-                this.done && this.done(this._target)
-                // 获取模版
-                let navLiTemplate = this._compile(this.navLiTemplate, this._target)
-                this._mountNav(navLiTemplate)
-            } else if (list && list.length > 0) {
+            if (list && list.length > 0) {
                 this._handleData(list, index, mySequenceNum)
                 if (this.defaultTarget && this.defaultTarget.length) {
                     this._handleOnePanel(index + 1)
+                }
+            } else {
+                this._reset(index, mySequenceNum)
+                if (isDone) {
+                    this.done && this.done(this._target)
+                    // 获取模版
+                    let navLiTemplate = this._compile(this.navLiTemplate, this._target, index)
+                    this._mountNav(navLiTemplate)
                 }
             }
         })
@@ -205,10 +213,10 @@ class Picker {
             this._mountPElem(this.el, this.pClass, index)
         }
         // 获取模版
-        let navLiTemplate = this._compile(this.navLiTemplate, this._target)
+        let navLiTemplate = this._compile(this.navLiTemplate, this._target, index)
         this._mountNav(navLiTemplate)
 
-        let panelLiTemplate = this._compile(this.panelLiTemplate, list)
+        let panelLiTemplate = this._compile(this.panelLiTemplate, list, index)
         this._mountPanel(panelLiTemplate, index)
         this._translatePanel(index)
 
@@ -225,7 +233,12 @@ class Picker {
 
     _translatePanel(index) {
         let panelFrame = this._pElem.querySelector('.panel-frame')
+        let ulElem = panelFrame.querySelector('.panel-' + index)
+        let activeElem = ulElem.querySelector('.active')
         panelFrame.style.transform = 'translate(' + (-1 * index * 100) + '%, 0)'
+        if (activeElem) {
+            ulElem.scrollTop = ulElem.querySelector('.active').offsetTop
+        }
     }
     // 注册事件
     _registerNavEvent(navElem, index) {
@@ -252,6 +265,35 @@ class Picker {
                 this._handleOnePanel(index + 1)
             }
         })
+    }
+
+    // 深度判断两个变量是否相等
+    _deepEqual(obj1, obj2) {
+        if (obj1 instanceof Array) {
+            if (!(obj2 instanceof Array)) {
+                return false
+            }
+            if (obj1.length != obj2.length) {
+                return false
+            }
+            return obj1.every((item, index) => {
+                return this._deepEqual(obj1[index], obj2[index])
+            })
+        }
+
+        if (obj1 instanceof Object) {
+            if (!(obj2 instanceof Object)) {
+                return false
+            }
+            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+                return false
+            }
+            return Object.keys(obj1).every(key => {
+                return this._deepEqual(obj1[key], obj2[key])
+            })
+        }
+
+        return obj1 === obj2
     }
 }
 

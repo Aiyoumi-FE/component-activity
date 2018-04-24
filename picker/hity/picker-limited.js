@@ -7,9 +7,10 @@
         e、限頻：UI更新100ms/touchmove，数据更新1000ms/touchmove，touchend时，立即开启数据请求；
         f、支持级联；
         g、支持列表单列dom自定义；
+        h、使用getComputedStyle获取行高，保留了小数点更为精确
     参数：
         style: 样式，会提供默认样式；
-        template: dom;{{value}}其中的value为getList返回的list中item的属性;
+        template: 如默认模版，{{xxx}}，其中的xxx为list中对象属性;
         el: 挂载点（默认为body）;
         pClass: 自定类;
         defaultTarget: 默认值；与target的结构相同
@@ -19,8 +20,8 @@
                 target: type: array，返回选中结果数组，
                 index：当前请求第几个面板数据；
             输出：
-                promise, {success, list}
-                其中 list为数组，包含每个item的数据 如[{value: xxx, id:xxx}]
+                promise, {success, list, isDone}
+                其中 list为对象数组[{},{}]，每个对象包含模版所需的属性
         done: 回调函数，当picker整体选择完毕以后，调用该函数；返回选中的target
 *************************/
 /* global alert */
@@ -28,7 +29,7 @@ import { throttle } from './utils'
 
 const defaultStyle = [
     '.picker * {margin: 0; padding: 0;}',
-    '.picker {z-index: 10; position:fixed; bottom:10%; left: 0; width: 98%; padding: 0 1%; height: 30%; display: flex; overflow:hidden;}',
+    '.picker {z-index: 10; position:relative; width: 100%; height: 100%; display: flex; overflow:hidden;}',
     '.picker ul{position: relative; height:auto; top: 50%; flex: 1 1; list-style: none;}',
     'li {line-height: 30px; overflow: hidden; width: 100%; height: 30px; line-height: 30px; text-align: center;}',
     '.target-line {z-index: -1; width: 100%; height: 30px; position: absolute; top:50%; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd;}'
@@ -122,7 +123,11 @@ class Picker {
 
             // 取得行高
             if (!this._lineHeight) {
-                this._lineHeight = ulElem.querySelector('li').offsetHeight
+                this._lineHeight = Number(
+                    window.getComputedStyle(
+                        ulElem.querySelector('li'), null
+                    ).lineHeight
+                        .split('px')[0])
             }
 
             // 根据默认值，进行ui初始化
@@ -227,7 +232,7 @@ class Picker {
     _renderInitUi(ulElem, index) {
         let targetIndex = 0
         this._list[index].forEach((item, tIndex) => {
-            if (Object.keys(item).every(key => item[key] === this._target[index][key])) {
+            if (this._deepEqual(item, this._target[index])) {
                 targetIndex = tIndex
             }
         })
@@ -329,6 +334,35 @@ class Picker {
                 }, delay)
             }
         }
+    }
+
+    // 深度判断两个变量是否相等
+    _deepEqual(obj1, obj2) {
+        if (obj1 instanceof Array) {
+            if (!(obj2 instanceof Array)) {
+                return false
+            }
+            if (obj1.length != obj2.length) {
+                return false
+            }
+            return obj1.every((item, index) => {
+                return this._deepEqual(obj1[index], obj2[index])
+            })
+        }
+
+        if (obj1 instanceof Object) {
+            if (!(obj2 instanceof Object)) {
+                return false
+            }
+            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+                return false
+            }
+            return Object.keys(obj1).every(key => {
+                return this._deepEqual(obj1[key], obj2[key])
+            })
+        }
+
+        return obj1 === obj2
     }
 }
 
