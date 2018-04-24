@@ -114,10 +114,10 @@ class Picker {
             }, false)
         }
 
-        let ulElem = this._pElem.querySelector('.panel-' + index)
+        let ulElem = this._pElem.querySelector('.column-' + index)
         if (!ulElem) {
             ulElem = document.createElement('ul')
-            ulElem.className = 'panel-' + index
+            ulElem.className = 'column-' + index
             ulElem.innerHTML = template
             pElem.appendChild(ulElem)
 
@@ -163,12 +163,12 @@ class Picker {
     _handleWholePanel(index) {
         let latestSequenceNum = this._latestSequenceNum++
 
-        this._handleOnePanel(index, latestSequenceNum)
+        this._handleOneColumn(index, latestSequenceNum)
         return true
     }
 
     // 处理单个面板的数据获取及编译、挂载
-    _handleOnePanel(index, mySequenceNum) {
+    _handleOneColumn(index, mySequenceNum) {
         this._getData(index, mySequenceNum).then(({list, isDone}) => {
             if (list && list.length > 0) {
                 this._handleData(list, index, mySequenceNum)
@@ -222,7 +222,7 @@ class Picker {
         // 设置当前的数据时序
         this._currSequenceNum[index] = mySequenceNum
         if (this.isCascade) {
-            this._handleOnePanel(index + 1, mySequenceNum)
+            this._handleOneColumn(index + 1, mySequenceNum)
         } else {
             this._resetState(index, mySequenceNum)
         }

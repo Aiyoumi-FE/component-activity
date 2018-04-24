@@ -7,7 +7,7 @@
     参数：
         style: 样式，会提供默认样式；
         navLiTemplate: 模版；{{value}}其中的value为选中的item的属性，item与list中的item属性相同;
-        panelLiTemplate: 模版；{{value}}其中的value为getList返回的list中item的属性;
+        columnLiTemplate: 模版；{{value}}其中的value为getList返回的list中item的属性;
         el: 挂载点（默认为body）;
         pClass: 自定义秒杀组件容器的类;
         defaultTarget: 默认值；与target的结构相同
@@ -26,21 +26,21 @@ const defaultStyle = [
     '.picker {position:relative; width: 100%; height: 100%; background: #fff;}',
     '.picker .nav{position: relative; height:30px; line-height:30px; list-style: none; display: flex; border-bottom: 1px solid #e4e4e4; padding: 0 12px;}',
     '.picker .nav li{padding-right: 10px; overflow: scroll;}',
-    '.picker .panel-frame {position: relative; width: 100%; height: 100%; transition: transform 500ms;}',
-    '.panel-frame ul {position:absolute; top: 5px; list-style: none; width:100%; height: 80%; line-height: 24px; padding: 0 12px; overflow: scroll;}',
-    '.panel-frame .active {color: red;}',
+    '.picker .column-frame {position: relative; width: 100%; height: 100%; transition: transform 500ms;}',
+    '.column-frame ul {position:absolute; top: 5px; list-style: none; width:100%; height: 80%; line-height: 24px; padding: 0 12px; overflow: scroll;}',
+    '.column-frame .active {color: red;}',
     '.nav .active {border-bottom: 1px solid red;}'
 ].join('')
 
 const defaultNavLiTemplate = '<li key="{{id}}">{{value}}</li>'
-const defaultPanelLiTemplate = '<li key="{{id}}">{{value}}</li>'
+const defaultColumnLiTemplate = '<li key="{{id}}">{{value}}</li>'
 
 class Picker {
     constructor(options) {
         Object.assign(this, {
             style: defaultStyle,
             navLiTemplate: defaultNavLiTemplate,
-            panelLiTemplate: defaultPanelLiTemplate,
+            columnLiTemplate: defaultColumnLiTemplate,
             defaultTarget: []
         },
         options, {
@@ -65,7 +65,7 @@ class Picker {
         // style渲染
         this._renderStyle()
         this._target = this.defaultTarget
-        this._handleOnePanel(0)
+        this._handleOneColumn(0)
     }
 
     // 获取数据
@@ -105,19 +105,19 @@ class Picker {
         this._renderUi(navElem.querySelectorAll('li'), navElem.lastChild)
     }
 
-    _mountPanel(panelLiTemplate, index) {
-        let panelFrame = this._pElem.querySelector('.panel-frame')
-        let ulElem = panelFrame.querySelector('.panel-' + index)
+    _mountColumn(columnLiTemplate, index) {
+        let columnFrame = this._pElem.querySelector('.column-frame')
+        let ulElem = columnFrame.querySelector('.column-' + index)
         if (!ulElem) {
             ulElem = document.createElement('ul')
-            ulElem.className = 'panel-' + index
-            ulElem.innerHTML = panelLiTemplate
+            ulElem.className = 'column-' + index
+            ulElem.innerHTML = columnLiTemplate
             ulElem.style.left = 100 * index + '%'
-            panelFrame.append(ulElem)
+            columnFrame.append(ulElem)
             // 新建ul列表时，注册交互事件
-            this._registerPanelEvent(ulElem, index)
+            this._registerColumnEvent(ulElem, index)
         } else {
-            ulElem.innerHTML = panelLiTemplate
+            ulElem.innerHTML = columnLiTemplate
         }
     }
     // 挂载
@@ -127,7 +127,7 @@ class Picker {
         if (!pElem) {
             pElem = document.createElement('div')
             pElem.className = 'picker ' + (!pClass ? '' : pClass)
-            pElem.innerHTML = '<ul class="nav"></ul><div class="panel-frame"></div>'
+            pElem.innerHTML = '<ul class="nav"></ul><div class="column-frame"></div>'
             el.append(pElem)
             this._pElem = pElem
             let navElem = this._pElem.querySelector('.nav')
@@ -136,7 +136,7 @@ class Picker {
     }
 
     // 编译模版，填充值
-    _compile(liTemplate, list, panelIndex) {
+    _compile(liTemplate, list, columnIndex) {
         let reg = new RegExp(/(\{\{([^\}]+)\}\})/g)
         return list.map((item, index) => {
             let template = liTemplate
@@ -148,7 +148,7 @@ class Picker {
                 }
                 template = template.replace(RegExp.$1, value)
             }
-            if (this._deepEqual(item, this.defaultTarget[panelIndex])) {
+            if (this._deepEqual(item, this.defaultTarget[columnIndex])) {
                 template = template.replace('<li', '<li class="active" ')
             }
             return template.replace('<li', '<li index="' + index + '" ')
@@ -161,14 +161,14 @@ class Picker {
         this._finished = true
     }
     // 处理单个面板的数据获取及编译、挂载
-    _handleOnePanel(index) {
+    _handleOneColumn(index) {
         let mySequenceNum = this._latestSequenceNum[index]++
         this._finished = false
         this._getData(index, mySequenceNum).then(({list, isDone}) => {
             if (list && list.length > 0) {
                 this._handleData(list, index, mySequenceNum)
                 if (this.defaultTarget && this.defaultTarget.length) {
-                    this._handleOnePanel(index + 1)
+                    this._handleOneColumn(index + 1)
                 }
             } else {
                 this._reset(index, mySequenceNum)
@@ -216,9 +216,9 @@ class Picker {
         let navLiTemplate = this._compile(this.navLiTemplate, this._target, index)
         this._mountNav(navLiTemplate)
 
-        let panelLiTemplate = this._compile(this.panelLiTemplate, list, index)
-        this._mountPanel(panelLiTemplate, index)
-        this._translatePanel(index)
+        let columnLiTemplate = this._compile(this.columnLiTemplate, list, index)
+        this._mountColumn(columnLiTemplate, index)
+        this._translateColumn(index)
 
         // 设置当前的数据时序
         this._currSequenceNum[index] = mySequenceNum
@@ -231,11 +231,11 @@ class Picker {
         targetNode.classList && targetNode.classList.add('active')
     }
 
-    _translatePanel(index) {
-        let panelFrame = this._pElem.querySelector('.panel-frame')
-        let ulElem = panelFrame.querySelector('.panel-' + index)
+    _translateColumn(index) {
+        let columnFrame = this._pElem.querySelector('.column-frame')
+        let ulElem = columnFrame.querySelector('.column-' + index)
         let activeElem = ulElem.querySelector('.active')
-        panelFrame.style.transform = 'translate(' + (-1 * index * 100) + '%, 0)'
+        columnFrame.style.transform = 'translate(' + (-1 * index * 100) + '%, 0)'
         if (activeElem) {
             ulElem.scrollTop = ulElem.querySelector('.active').offsetTop
         }
@@ -248,21 +248,21 @@ class Picker {
                 this._renderUi(liElems, event.target)
                 let index = event.target.getAttribute('index')
                 index = index == -1 ? (liElems.length - 1) : index
-                this._translatePanel(index)
+                this._translateColumn(index)
             }
         })
     }
 
     // 注册事件
-    _registerPanelEvent(panelElem, index) {
-        panelElem.addEventListener('click', (event) => {
+    _registerColumnEvent(columnElem, index) {
+        columnElem.addEventListener('click', (event) => {
             if (event.target.nodeName === 'LI') {
-                let liElems = panelElem.querySelectorAll('li')
+                let liElems = columnElem.querySelectorAll('li')
                 this._renderUi(liElems, event.target)
                 let targetIndex = event.target.getAttribute('index')
                 this._target[index] = this._list[index][targetIndex]
                 this._target.splice(index + 1, this._target.length - index - 1)
-                this._handleOnePanel(index + 1)
+                this._handleOneColumn(index + 1)
             }
         })
     }
