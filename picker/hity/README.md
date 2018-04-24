@@ -69,3 +69,12 @@ new Picker({
 }).init()
 ```
 
+## 展现
+#### picker-limited
+![](https://images2018.cnblogs.com/blog/1094893/201804/1094893-20180424172259161-279081173.png)
+
+#### picker-limitless
+![](https://images2018.cnblogs.com/blog/1094893/201804/1094893-20180424172344122-64509523.png)
+
+## picker-limited流程图
+![](https://images2018.cnblogs.com/blog/1094893/201804/1094893-20180424172437137-304505056.png)
