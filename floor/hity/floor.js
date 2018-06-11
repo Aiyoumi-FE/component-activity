@@ -54,12 +54,12 @@ class Floor {
         },
         options, {
             _pElem: null,
-            _navListPos: [],
-            _proListPos: [],
-            _navRealWidth: 0,
-            _activeKey: '',
-            _translatePosNav: 0,
-            _translatePosList: 0
+            _navListPos: [], // nav导航item的可位移位置
+            _proListPos: [], // list item的可位置位置
+            _navRealWidth: 0, // 导航的真实宽度
+            _activeKey: '', // 选中的key
+            _translatePosNav: 0, // 导航的位移位置
+            _translatePosList: 0 // 列表的位移位置
         })
     }
 
@@ -70,13 +70,20 @@ class Floor {
         // style渲染
         this._renderStyle()
 
+        // 编译挂载
         this._compile()
+
+        // 回调
         this.cb && this.cb()
+
+        // 初始化nav item、list section位置
         this._initPos()
 
+        // 绑定事件
         this._bindEvent()
     }
 
+    // style渲染
     _renderStyle() {
         let style = this.style
         if (typeof style === 'string' && style.trim()) {
@@ -162,10 +169,9 @@ class Floor {
             pElem.innerHTML = compileStr
         }
     }
-    // 初始化位置元素: nav元素对应的可位移的宽度、section list元素对应的可滚动的高度
+    // 初始化位置: nav元素对应的可位移的宽度、section list元素对应的可滚动的高度
     _initPos() {
         let navPElem = this._pElem.querySelector('#nav')
-        let panelPElem = this._pElem.querySelector('#panel')
         let listPElem = this._pElem.querySelector('#list')
 
         // 获取每个元素可位移的宽度translateX
@@ -173,6 +179,7 @@ class Floor {
 
         this._proListPos = this._getProListPos(listPElem)
     }
+
     _getWidthALeft(e) {
         return {
             key: e.getAttribute('data-key'),
@@ -285,6 +292,7 @@ class Floor {
         this._touchScroll(navPElem.querySelector('#nav-list'), 'h', 2, -1 * (this._navRealWidth - navPElem.querySelector('#nav-list').clientWidth), 0)
     }
 
+    // 导航click和list 位移的公共处理
     _navChangeState(key) {
         // nav移除 active, 对应item上添加active
         this._removeAAddClassName('active', this._pElem.querySelector('#nav-list [data-key=' + key + ']'), '#nav-list li')
